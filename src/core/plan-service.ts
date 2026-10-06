@@ -1,10 +1,14 @@
-import { packItems } from './packing-engine';
-import type { PackingItem, PackingPlan, PlanMode, Suitcase } from './models';
+import { planHierarchy } from './container-plan';
+import type { Container, PackingItem, PackingPlan, PlanMode, Suitcase } from './models';
 
-export function generatePlans(suitcase: Suitcase, items: PackingItem[]): Record<PlanMode, PackingPlan> {
+export function generatePlans(
+  suitcase: Suitcase,
+  items: PackingItem[],
+  containers: Container[] = [],
+): Record<PlanMode, PackingPlan> {
   return {
-    minimal: packItems(suitcase, items, 'minimal'),
-    comfort: packItems(suitcase, items, 'comfort'),
-    shopping: packItems(suitcase, items, 'shopping'),
+    minimal: planHierarchy(suitcase, items, containers, 'minimal'),
+    comfort: planHierarchy(suitcase, items, containers, 'comfort'),
+    shopping: planHierarchy(suitcase, items, containers, 'shopping'),
   };
 }

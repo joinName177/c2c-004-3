@@ -50,6 +50,19 @@ describe('Luggage planner App', () => {
     expect(wrapper.findAll('[data-item-id="jacket"].selected')).toHaveLength(2);
   });
 
+  it('opens a container layer and explicitly moves an unplaced child container out', async () => {
+    const { wrapper } = render();
+    await wrapper.findAll('[data-testid="open-container"]')[0]!.trigger('click');
+    expect(wrapper.text()).toContain('相机包内部摆放');
+    expect(wrapper.text()).toContain('微单相机');
+
+    const lensRow = wrapper.findAll('.container-row').find((row) => row.text().includes('镜头筒'));
+    await lensRow?.findAll('button.tiny-button')[1]?.trigger('click');
+    expect(wrapper.text()).toContain('移动容器');
+    await wrapper.get('.confirm-dialog footer .danger').trigger('click');
+    expect(wrapper.findAll('.container-row').some((list) => list.text().includes('镜头筒'))).toBe(true);
+  });
+
   it('delegates printing through the print port', async () => {
     const { wrapper, getPrintCount } = render();
     await wrapper.get('[data-testid="print-button"]').trigger('click');
