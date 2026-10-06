@@ -2,11 +2,13 @@ export type Dimensions = Readonly<{ length: number; width: number; height: numbe
 export type PlanMode = 'minimal' | 'comfort' | 'shopping';
 export type RiskSeverity = 'critical' | 'warning' | 'info';
 
-export interface Suitcase extends Dimensions {
+export interface PackingSpace extends Dimensions {
   maxWeight: number;
 }
 
-export interface PackingItem extends Dimensions {
+export interface Suitcase extends PackingSpace {}
+
+interface PackingEntityBase extends Dimensions {
   id: string;
   name: string;
   category: string;
@@ -14,6 +16,29 @@ export interface PackingItem extends Dimensions {
   priority: 1 | 2 | 3;
   mustHave: boolean;
   fragile?: boolean;
+  /** Parent container. null means the entity can participate in the outer suitcase. */
+  containerId?: string | null;
+}
+
+export interface PackingItem extends PackingEntityBase {
+  kind?: 'item';
+}
+
+export interface Container extends PackingEntityBase {
+  kind: 'container';
+  innerLength: number;
+  innerWidth: number;
+  innerHeight: number;
+}
+
+export type PackingEntity = PackingItem | Container;
+
+export function isContainer(entity?: PackingEntity | null): entity is Container {
+  return entity?.kind === 'container';
+}
+
+export function innerDimensions(container: Container): Dimensions {
+  return { length: container.innerLength, width: container.innerWidth, height: container.innerHeight };
 }
 
 export interface Placement {
@@ -28,10 +53,20 @@ export interface PackingPlan {
   id: PlanMode;
   name: string;
   placements: Placement[];
-  unplaced: Array<{ item: PackingItem; reason: string }>;
+  unplaced: Array<{ item: PackingEntity; reason: string }>;
   totalWeight: number;
   usedVolume: number;
   capacityRatio: number;
+}
+
+export interface ContainerPlan {
+  containerId: string;
+  containerName: string;
+  plan: PackingPlan;
+}
+
+export interface HierarchicalPlan extends PackingPlan {
+  containerPlans: Record<string, ContainerPlan>;
 }
 
 export interface Risk {
@@ -44,8 +79,9 @@ export interface Risk {
 
 export interface PackingSnapshot {
   suitcase: Suitcase;
-  items: PackingItem[];
+  items: PackingEntity[];
   selectedPlan: PlanMode;
+  plans?: Record<PlanMode, HierarchicalPlan>;
 }
 
 export function itemVolume(item: Dimensions): number {

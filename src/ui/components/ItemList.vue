@@ -1,17 +1,34 @@
 <script setup lang="ts">
-import type { PackingItem } from '../../core/models';
-defineProps<{ items: PackingItem[] }>();
-const emit = defineEmits<{ remove: [id: string]; toggle: [id: string, mustHave: boolean] }>();
+import type { Container, HierarchicalPlan, PackingEntity } from '../../core/models';
+import EntityTreeNode from './EntityTreeNode.vue';
+
+defineProps<{ items: PackingEntity[]; hierarchy: HierarchicalPlan; blockedId?: string }>();
+const emit = defineEmits<{
+  remove: [id: string];
+  deleteContainer: [container: Container];
+  toggle: [id: string, mustHave: boolean];
+  move: [entity: PackingEntity];
+  enter: [container: Container];
+}>();
+const roots = (items: PackingEntity[]) => items.filter((item) => !item.containerId || !items.some((candidate) => candidate.id === item.containerId));
 </script>
 
 <template>
   <div class="item-list">
-    <article v-for="item in items" :key="item.id" class="item-row">
-      <div class="item-icon">{{ item.category.slice(0, 1) }}</div>
-      <div class="item-copy"><strong>{{ item.name }}</strong><span>{{ item.length }}×{{ item.width }}×{{ item.height }} cm · {{ item.weight }} kg</span></div>
-      <button class="must-button" :class="{ checked: item.mustHave }" type="button" @click="emit('toggle', item.id, !item.mustHave)">{{ item.mustHave ? '必带' : '可选' }}</button>
-      <b class="priority">P{{ item.priority }}</b>
-      <button class="icon-button" type="button" :aria-label="`删除 ${item.name}`" @click="emit('remove', item.id)">×</button>
-    </article>
+    <EntityTreeNode
+      v-for="entity in roots(items)"
+      :key="entity.id"
+      :entity="entity"
+      :all-entities="items"
+      :parent-id="null"
+      :hierarchy="hierarchy"
+      :depth="0"
+      :blocked-id="blockedId"
+      @remove="emit('remove', $event)"
+      @delete-container="emit('deleteContainer', $event)"
+      @toggle="(id, mustHave) => emit('toggle', id, mustHave)"
+      @move="emit('move', $event)"
+      @enter="emit('enter', $event)"
+    />
   </div>
 </template>

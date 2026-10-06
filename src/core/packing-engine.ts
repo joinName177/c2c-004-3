@@ -1,10 +1,11 @@
 import { intersects, rotationsOf } from './geometry';
-import { itemVolume, suitcaseVolume, type PackingItem, type PackingPlan, type Placement, type PlanMode, type Suitcase } from './models';
+import { itemVolume, suitcaseVolume, type PackingEntity, type PackingPlan, type PackingSpace, type Placement, type PlanMode } from './models';
 
 const PLAN_NAMES: Record<PlanMode, string> = { minimal: '精简版', comfort: '舒适版', shopping: '购物版' };
 const RESERVE: Record<PlanMode, number> = { minimal: 0.8, comfort: 1, shopping: 0.65 };
+const UNLIMITED_WEIGHT = Number.MAX_SAFE_INTEGER;
 
-export function validateSuitcase(suitcase: Suitcase): string[] {
+export function validateSuitcase(suitcase: PackingSpace): string[] {
   const errors: string[] = [];
   if (!(suitcase.length > 0)) errors.push('行李箱长度必须大于 0');
   if (!(suitcase.width > 0)) errors.push('行李箱宽度必须大于 0');
@@ -13,7 +14,7 @@ export function validateSuitcase(suitcase: Suitcase): string[] {
   return errors;
 }
 
-function ordered(items: PackingItem[], mode: PlanMode): PackingItem[] {
+function ordered(items: PackingEntity[], mode: PlanMode): PackingEntity[] {
   return [...items].sort((a, b) => {
     const required = Number(b.mustHave) - Number(a.mustHave);
     if (required) return required;
@@ -35,11 +36,16 @@ function candidatePoints(placements: Placement[]) {
   return points.sort((a, b) => a.z - b.z || a.y - b.y || a.x - b.x);
 }
 
-export function packItems(suitcase: Suitcase, items: PackingItem[], mode: PlanMode): PackingPlan {
+export function packItems(
+  suitcase: PackingSpace,
+  items: PackingEntity[],
+  mode: PlanMode,
+  reserve: number = RESERVE[mode],
+): PackingPlan {
   const placements: Placement[] = [];
   const unplaced: PackingPlan['unplaced'] = [];
-  const capacity = suitcaseVolume(suitcase) * RESERVE[mode];
-  const maxWeight = suitcase.maxWeight * RESERVE[mode];
+  const capacity = suitcaseVolume(suitcase) * reserve;
+  const maxWeight = suitcase.maxWeight === UNLIMITED_WEIGHT ? UNLIMITED_WEIGHT : suitcase.maxWeight * reserve;
   let totalWeight = 0;
   let usedVolume = 0;
 

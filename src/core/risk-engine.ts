@@ -1,7 +1,7 @@
 import { rotationsOf } from './geometry';
-import type { PackingItem, PackingPlan, Risk, Suitcase } from './models';
+import { isContainer, type PackingEntity, type PackingPlan, type PackingSpace, type Risk } from './models';
 
-export function detectRisks(plan: PackingPlan, suitcase: Suitcase, items: PackingItem[]): Risk[] {
+export function detectRisks(plan: PackingPlan, suitcase: PackingSpace, items: PackingEntity[]): Risk[] {
   const risks: Risk[] = [];
   const byId = new Map(items.map((item) => [item.id, item]));
 
@@ -11,8 +11,8 @@ export function detectRisks(plan: PackingPlan, suitcase: Suitcase, items: Packin
 
   for (const { item } of plan.unplaced) {
     const oversized = rotationsOf(item).every((d) => d.length > suitcase.length || d.width > suitcase.width || d.height > suitcase.height);
-    if (oversized) risks.push({ id: `oversized-${item.id}`, severity: 'critical', title: `${item.name} 尺寸越界`, message: '任意旋转方向都无法放入当前行李箱。', itemId: item.id });
-    if (item.mustHave) risks.push({ id: `missing-${item.id}`, severity: 'critical', title: `必需品未装入：${item.name}`, message: '请调整清单或改用更大行李箱。', itemId: item.id });
+    if (oversized) risks.push({ id: `oversized-${item.id}`, severity: 'critical', title: `${item.name} 尺寸越界`, message: '任意旋转方向都无法放入当前空间。', itemId: item.id });
+    if (item.mustHave) risks.push({ id: `missing-${item.id}`, severity: 'critical', title: `必需品未装入：${item.name}`, message: isContainer(item) ? '该容器或其内的必带内容无法随行，请调整容器或外层空间。' : '请调整清单或改用更大行李箱。', itemId: item.id });
   }
 
   for (const placement of plan.placements) {
@@ -30,6 +30,5 @@ export function detectRisks(plan: PackingPlan, suitcase: Suitcase, items: Packin
     }
   }
 
-  if (!risks.length) risks.push({ id: 'all-clear', severity: 'info', title: '装载状态良好', message: '重量、空间和摆放风险均在合理范围内。' });
   return risks;
 }
